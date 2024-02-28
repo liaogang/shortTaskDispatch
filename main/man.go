@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"root/http_server"
-	"root/rpc_centre/rpc_server"
 	"time"
 )
 
@@ -27,8 +26,8 @@ func main() {
 }
 
 type Config struct {
-	GinHttp          string `yaml:"http_server_listen"`
-	RpcListenAddress string `yaml:"rpc_server_listen"`
+	GinHttp string `yaml:"http_server_listen"`
+	//RpcListenAddress string `yaml:"rpc_server_listen"`
 }
 
 func work() error {
@@ -54,7 +53,7 @@ func work() error {
 
 	go http_server.SetupRouter(config.GinHttp)
 
-	err = rpc_server.DefaultRpcServer.Run(config.RpcListenAddress)
+	//err = rpc_server.DefaultRpcServer.Run(config.RpcListenAddress)
 
 	return err
 }

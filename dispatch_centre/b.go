@@ -21,5 +21,12 @@ func ClaimTask(taskType string) (*TaskItem, error) {
 
 func FinishTask(taskId string, payload []byte) error {
 
+	var c, ok = chanCache[taskId]
+	if !ok {
+		return fmt.Errorf("no this taskId, or task released by timeout")
+	}
+
+	c <- payload
+
 	return nil
 }

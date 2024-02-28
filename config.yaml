@@ -1,4 +1,4 @@
 
 http_server_listen: ":4247"
-rpc_server_listen: ":4248"
+#rpc_server_listen: ":4248"
 
