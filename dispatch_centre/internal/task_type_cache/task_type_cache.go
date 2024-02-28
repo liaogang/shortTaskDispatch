@@ -2,30 +2,36 @@ package task_type_cache
 
 import (
 	"fmt"
-	"root/dispatch_centre"
+	"github.com/rs/zerolog/log"
+	"root/model/Task"
 )
 
-//var itemMap = make(map[string]*dispatch_centre.TaskItem)
+var tableTypeToIdMap = make(map[string]map[string]*Task.Item)
 
-var tableTypeToIdMap = make(map[string]map[string]*dispatch_centre.TaskItem)
+func Add(item *Task.Item) {
 
-func Add(item *dispatch_centre.TaskItem) {
-
-	itemMap, ok := tableTypeToIdMap[item.TaskType]
+	itemMap, ok := tableTypeToIdMap[item.Type]
 	if !ok {
 		//todo
-		itemMap = make(map[string]*dispatch_centre.TaskItem)
-		tableTypeToIdMap[item.TaskType] = itemMap
+		itemMap = make(map[string]*Task.Item)
+		tableTypeToIdMap[item.Type] = itemMap
 	}
 
-	itemMap[item.TaskId] = item
+	itemMap[item.Id] = item
 }
 
 func Delete(taskType, taskId string) {
 
+	itemMap, ok := tableTypeToIdMap[taskType]
+	if !ok {
+		log.Trace().Msg("no this item map")
+		return
+	}
+
+	delete(itemMap, taskId)
 }
 
-func Find(taskType string) (*dispatch_centre.TaskItem, error) {
+func Find(taskType string) (*Task.Item, error) {
 
 	itemMap, ok := tableTypeToIdMap[taskType]
 	if !ok {

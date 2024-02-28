@@ -3,13 +3,14 @@ package dispatch_centre
 import (
 	"fmt"
 	"root/dispatch_centre/internal/task_type_cache"
+	"root/model/Task"
 )
 
 /*
 领任务的两个接口
 */
 
-func ClaimTask(taskType string) (*TaskItem, error) {
+func ClaimTask(taskType string) (*Task.Item, error) {
 
 	item, err := task_type_cache.Find(taskType)
 	if err != nil {

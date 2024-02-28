@@ -4,33 +4,23 @@ import (
 	"fmt"
 	"root/dispatch_centre/internal/shortid"
 	"root/dispatch_centre/internal/task_type_cache"
+	"root/model/Task"
 	"time"
 )
 
 /*
 发布任务的两个接口
 */
-
-type TaskItem struct {
-	TaskId   string
-	TaskType string
-	//Begin    time.Time
-	//Timeout  time.Duration
-	Body []byte
-}
-
 var taskIdToType = make(map[string]string)
 
 // Dispatch return taskId, 生成任务
-func Dispatch(taskType string, body []byte) *TaskItem {
+func Dispatch(taskType string, body []byte) *Task.Item {
 
 	var id = shortid.New()
 
-	var item = &TaskItem{
-		TaskId:   id,
-		TaskType: taskType,
-		//Begin:    time.Now(),
-		//Timeout:  timeout,
+	var item = &Task.Item{
+		Id:   id,
+		Type: taskType,
 		Body: body,
 	}
 
@@ -44,10 +34,12 @@ func Dispatch(taskType string, body []byte) *TaskItem {
 var chanCache = make(map[string]chan []byte)
 
 // WaitDone 等任务完成
-func WaitDone(item *TaskItem, timeout time.Duration) ([]byte, error) {
+func WaitDone(item *Task.Item, timeout time.Duration) ([]byte, error) {
+
+	var id = item.Id
 
 	var c = make(chan []byte)
-	chanCache[item.TaskId] = c
+	chanCache[id] = c
 
 	var t = time.NewTimer(timeout)
 
@@ -55,18 +47,18 @@ func WaitDone(item *TaskItem, timeout time.Duration) ([]byte, error) {
 	case respData := <-c:
 
 		//clean
-		taskType, ok := taskIdToType[item.TaskId]
+		taskType, ok := taskIdToType[id]
 		if ok {
-			task_type_cache.Delete(taskType, item.TaskId)
+			task_type_cache.Delete(taskType, id)
 		}
 
 		return respData, nil
 	case <-t.C:
 
 		//clean
-		taskType, ok := taskIdToType[item.TaskId]
+		taskType, ok := taskIdToType[id]
 		if ok {
-			task_type_cache.Delete(taskType, item.TaskId)
+			task_type_cache.Delete(taskType, id)
 		}
 
 		return nil, fmt.Errorf("timeout")

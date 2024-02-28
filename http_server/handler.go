@@ -18,23 +18,25 @@ func publishTask(ctx *gin.Context) error {
 
 	ctx.Request.Body.Close()
 
-	taskId := dispatch_centre.Dispatch(taskType, body, time.Second*180)
+	item := dispatch_centre.Dispatch(taskType, body)
 
-	err = dispatch_centre.WaitDone(taskId)
+	resp, err := dispatch_centre.WaitDone(item, time.Second*180)
+
+	ctx.Writer.Write(resp)
 
 	return err
 }
 
 func claimTask(ctx *gin.Context) error {
 
-	taskType := ctx.PostForm("taskType")
+	taskType := ctx.Query("taskType")
 
 	taskItem, err := dispatch_centre.ClaimTask(taskType)
 	if err != nil {
 		return err
 	}
 
-	ctx.Header("X-TaskId", taskItem.TaskId)
+	ctx.Header("TaskId", taskItem.Id)
 	ctx.Writer.Write(taskItem.Body)
 
 	return nil

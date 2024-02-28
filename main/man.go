@@ -51,9 +51,7 @@ func work() error {
 
 	log.Info().Interface("config", config).Send()
 
-	go http_server.SetupRouter(config.GinHttp)
+	http_server.SetupRouter(config.GinHttp)
 
-	//err = rpc_server.DefaultRpcServer.Run(config.RpcListenAddress)
-
-	return err
+	return nil
 }
