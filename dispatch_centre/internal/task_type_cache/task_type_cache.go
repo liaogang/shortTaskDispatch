@@ -39,7 +39,10 @@ func Find(taskType string) (*Task.Item, error) {
 	}
 
 	for _, item := range itemMap {
-		return item, nil
+		if item.CheckOut == false {
+			item.CheckOut = true
+			return item, nil
+		}
 	}
 
 	return nil, fmt.Errorf("no item in itemMap")

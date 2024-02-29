@@ -10,7 +10,31 @@ import (
 领任务的两个接口
 */
 
-func ClaimTask(taskType string) (*Task.Item, error) {
+// 尝试领任务, 没有任务,则返回空
+func TryClaimTask(taskType string) (*Task.Item, error) {
+
+	item, err := task_type_cache.Find(taskType)
+	if err != nil {
+		return nil, fmt.Errorf("no content, %w", err)
+	}
+
+	return item, nil
+}
+
+// 领任务直到有任务
+func WaitClaimTask(taskType string) (*Task.Item, error) {
+
+	item, err := task_type_cache.Find(taskType)
+	if err != nil {
+		return nil, fmt.Errorf("no content, %w", err)
+	}
+
+	item.CheckOut = true
+
+	return item, nil
+}
+
+func SyncClaimTask(taskType string) (*Task.Item, error) {
 
 	item, err := task_type_cache.Find(taskType)
 	if err != nil {

@@ -15,6 +15,7 @@ func SetupRouter(address string) {
 
 	//认领任务
 	h.POST("claimTask", genHandler(claimTask))
+
 	//完成认领的任务
 	h.POST("finishTask", genHandler(finishTask))
 

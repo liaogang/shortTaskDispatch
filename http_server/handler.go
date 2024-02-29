@@ -4,12 +4,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"io"
 	"root/dispatch_centre"
+	"root/model/Task"
+	"strconv"
 	"time"
 )
 
 func publishTask(ctx *gin.Context) error {
 	taskType := ctx.Query("taskType")
-	//timeout := ctx.Query("timeout")//todo
+	timeout := ctx.Query("timeout")
+
+	iTimeout, err := strconv.Atoi(timeout)
+	if err != nil {
+		return err
+	}
 
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
@@ -20,18 +27,28 @@ func publishTask(ctx *gin.Context) error {
 
 	item := dispatch_centre.Dispatch(taskType, body)
 
-	resp, err := dispatch_centre.WaitDone(item, time.Second*180)
+	resp, err := dispatch_centre.WaitDone(item, time.Second*time.Duration(iTimeout))
+	if err != nil {
+		return err
+	}
 
 	ctx.Writer.Write(resp)
-
-	return err
+	return nil
 }
 
 func claimTask(ctx *gin.Context) error {
 
 	taskType := ctx.Query("taskType")
+	async := ctx.Query("async")
 
-	taskItem, err := dispatch_centre.ClaimTask(taskType)
+	var taskItem *Task.Item
+	var err error
+	if async == "1" {
+		taskItem, err = dispatch_centre.TryClaimTask(taskType)
+	} else {
+		taskItem, err = dispatch_centre.WaitClaimTask(taskType)
+	}
+
 	if err != nil {
 		return err
 	}
