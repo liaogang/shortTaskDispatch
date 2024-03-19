@@ -10,34 +10,27 @@ import (
 type Cache struct {
 	TaskType        string
 	claimBufChannel chan *Task.Item
-
-	mFinishChannel sync.Map //string, chan *Task.Item
+	mFinishChannel  sync.Map //string, chan *Task.Item
 }
 
-func (slf *Cache) DispatchAndWaitFinish(item *Task.Item, timeout time.Duration) error {
+func (slf *Cache) DispatchAndWaitFinish(item *Task.Item, timeout time.Duration) ([]byte, error) {
 
 	//send to claim wait
 	slf.claimBufChannel <- item
 
 	//wait for finish
-	var finishChannel = make(chan *CallbackItem)
+	var finishChannel = make(chan []byte)
 	slf.mFinishChannel.Store(item.Id, finishChannel)
 
 	var t = time.NewTimer(timeout)
 
 	select {
 	case <-t.C:
-		print("")
-	case callbackItem := <-finishChannel:
-		fmt.Println(callbackItem)
+		return nil, fmt.Errorf("timeout")
+	case payload := <-finishChannel:
+		return payload, nil
 	}
 
-	return nil
-}
-
-type CallbackItem struct {
-	Err     error
-	Payload []byte
 }
 
 func (slf *Cache) ClaimAndWait() (*Task.Item, error) {
@@ -52,14 +45,9 @@ func (slf *Cache) Finish(id string, payload []byte) error {
 
 	if val, ok := slf.mFinishChannel.Load(id); ok {
 
-		var channel = val.(chan *CallbackItem)
+		var channel = val.(chan []byte)
 
-		var cb = &CallbackItem{
-			Err:     nil,
-			Payload: payload,
-		}
-
-		channel <- cb
+		channel <- payload
 
 		return nil
 	} else {
