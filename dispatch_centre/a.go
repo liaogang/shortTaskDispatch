@@ -29,7 +29,7 @@ func Dispatch(taskType string, body []byte) *Task.Item {
 
 	taskIdToType[id] = taskType
 
-	task_type_cache.Add(item)
+	task_type_cache.Dispatch(item)
 
 	return item
 }

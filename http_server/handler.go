@@ -39,14 +39,14 @@ func publishTask(ctx *gin.Context) error {
 func claimTask(ctx *gin.Context) error {
 
 	taskType := ctx.Query("taskType")
-	async := ctx.Query("async")
+	wait := ctx.Query("wait")
 
 	var taskItem *Task.Item
 	var err error
-	if async == "1" {
-		taskItem, err = dispatch_centre.TryClaimTask(taskType)
-	} else {
+	if wait == "1" {
 		taskItem, err = dispatch_centre.WaitClaimTask(taskType)
+	} else {
+		taskItem, err = dispatch_centre.TryClaimTask(taskType)
 	}
 
 	if err != nil {

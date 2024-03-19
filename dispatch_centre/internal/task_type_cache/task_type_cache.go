@@ -2,48 +2,68 @@ package task_type_cache
 
 import (
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"root/model/Task"
+	"sync"
+	"time"
 )
 
-var tableTypeToIdMap = make(map[string]map[string]*Task.Item)
+type Cache struct {
+	TaskType        string
+	claimBufChannel chan *Task.Item
 
-func Add(item *Task.Item) {
-
-	itemMap, ok := tableTypeToIdMap[item.Type]
-	if !ok {
-		//todo
-		itemMap = make(map[string]*Task.Item)
-		tableTypeToIdMap[item.Type] = itemMap
-	}
-
-	itemMap[item.Id] = item
+	mFinishChannel sync.Map //string, chan *Task.Item
 }
 
-func Delete(taskType, taskId string) {
+func (slf *Cache) DispatchAndWaitFinish(item *Task.Item, timeout time.Duration) error {
 
-	itemMap, ok := tableTypeToIdMap[taskType]
-	if !ok {
-		log.Trace().Msg("no this item map")
-		return
+	//send to claim wait
+	slf.claimBufChannel <- item
+
+	//wait for finish
+	var finishChannel = make(chan *CallbackItem)
+	slf.mFinishChannel.Store(item.Id, finishChannel)
+
+	var t = time.NewTimer(timeout)
+
+	select {
+	case <-t.C:
+		print("")
+	case callbackItem := <-finishChannel:
+		fmt.Println(callbackItem)
 	}
 
-	delete(itemMap, taskId)
+	return nil
 }
 
-func Find(taskType string) (*Task.Item, error) {
+type CallbackItem struct {
+	Err     error
+	Payload []byte
+}
 
-	itemMap, ok := tableTypeToIdMap[taskType]
-	if !ok {
-		return nil, fmt.Errorf("no item in tableTypeToIdMap")
-	}
+func (slf *Cache) ClaimAndWait() (*Task.Item, error) {
 
-	for _, item := range itemMap {
-		if item.CheckOut == false {
-			item.CheckOut = true
-			return item, nil
+	//wait for a task come
+	var taskItem = <-slf.claimBufChannel
+
+	return taskItem, nil
+}
+
+func (slf *Cache) Finish(id string, payload []byte) error {
+
+	if val, ok := slf.mFinishChannel.Load(id); ok {
+
+		var channel = val.(chan *CallbackItem)
+
+		var cb = &CallbackItem{
+			Err:     nil,
+			Payload: payload,
 		}
+
+		channel <- cb
+
+		return nil
+	} else {
+		return fmt.Errorf("can no find this task id in dispatching")
 	}
 
-	return nil, fmt.Errorf("no item in itemMap")
 }
