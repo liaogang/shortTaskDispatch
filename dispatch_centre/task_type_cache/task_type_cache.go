@@ -8,7 +8,7 @@ import (
 )
 
 type Cache struct {
-	TaskType        string
+	//TaskType        string
 	claimBufChannel chan *Task.Item
 	mFinishChannel  sync.Map //string, chan *Task.Item
 }
