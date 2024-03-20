@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
+	"root/dispatch_centre/pin_code_task_cache"
 	"root/dispatch_centre/shortid"
 	"root/dispatch_centre/task_type_cache"
 	"root/model/Task"
@@ -17,27 +18,13 @@ const (
 	TaskTypeQQRegisterSms     = "qqRegisterCheckOrSendSms"
 )
 
-var QQRegisterCaptcha task_type_cache.Cache
-var QQRegisterSms task_type_cache.Cache
+var QQRegisterCaptcha = task_type_cache.NewCache()
+var QQRegisterSms = pin_code_task_cache.NewCache()
 
 func publishTask(ctx *gin.Context) error {
 
 	taskType := ctx.Query("taskType")
 	timeout := ctx.Query("timeout")
-
-	var taskId string
-
-	var cache *task_type_cache.Cache
-	switch taskType {
-	case TaskTypeQQRegisterCaptcha:
-		taskId = "cap_" + shortid.New()
-		cache = &QQRegisterCaptcha
-	case TaskTypeQQRegisterSms:
-		taskId = "sms_" + shortid.New()
-		cache = &QQRegisterCaptcha
-	default:
-		return fmt.Errorf("no this task type")
-	}
 
 	iTimeout, err := strconv.Atoi(timeout)
 	if err != nil {
@@ -51,17 +38,43 @@ func publishTask(ctx *gin.Context) error {
 
 	ctx.Request.Body.Close()
 
-	var item = &Task.Item{
-		Id:   taskId,
-		Body: body,
-	}
+	var taskId string
 
-	resp, err := cache.DispatchAndWaitFinish(item, time.Second*time.Duration(iTimeout))
-	if err != nil {
-		return err
-	}
+	switch taskType {
+	case TaskTypeQQRegisterCaptcha:
+		taskId = "cap_" + shortid.New()
 
-	ctx.Writer.Write(resp)
+		var item = &Task.Item{
+			Id:   taskId,
+			Body: body,
+		}
+
+		resp, err2 := QQRegisterCaptcha.DispatchAndWaitFinish(item, time.Second*time.Duration(iTimeout))
+		if err2 != nil {
+			return err2
+		}
+
+		ctx.Writer.Write(resp)
+
+	case TaskTypeQQRegisterSms:
+		taskId = "sms_" + shortid.New()
+
+		var item = &Task.Item{
+			Id:   taskId,
+			Body: body,
+		}
+
+		pinCode := ctx.Query("pinCode")
+
+		resp, err2 := QQRegisterSms.DispatchAndWaitFinish(pinCode, item, time.Second*time.Duration(iTimeout))
+		if err2 != nil {
+			return err2
+		}
+
+		ctx.Writer.Write(resp)
+	default:
+		return fmt.Errorf("no this task type")
+	}
 
 	return nil
 }
@@ -70,23 +83,32 @@ func claimTask(ctx *gin.Context) error {
 
 	taskType := ctx.Query("taskType")
 
-	var cache *task_type_cache.Cache
 	switch taskType {
 	case TaskTypeQQRegisterCaptcha:
-		cache = &QQRegisterCaptcha
+
+		task, err := QQRegisterCaptcha.ClaimAndWait()
+		if err != nil {
+			return err
+		}
+
+		ctx.Header("TaskId", task.Id)
+		ctx.Writer.Write(task.Body)
+
 	case TaskTypeQQRegisterSms:
-		cache = &QQRegisterCaptcha
+
+		pinCode := ctx.Query("pinCode")
+
+		task, err := QQRegisterSms.ClaimAndWait(pinCode)
+		if err != nil {
+			return err
+		}
+
+		ctx.Header("TaskId", task.Id)
+		ctx.Writer.Write(task.Body)
+
 	default:
 		return fmt.Errorf("no this task type")
 	}
-
-	task, err := cache.ClaimAndWait()
-	if err != nil {
-		return err
-	}
-
-	ctx.Header("TaskId", task.Id)
-	ctx.Writer.Write(task.Body)
 
 	return nil
 }
@@ -100,16 +122,6 @@ func finishTask(ctx *gin.Context) error {
 		return fmt.Errorf("invalid task id format")
 	}
 
-	var cache *task_type_cache.Cache
-	switch before {
-	case "cap":
-		cache = &QQRegisterCaptcha
-	case "sms":
-		cache = &QQRegisterCaptcha
-	default:
-		return fmt.Errorf("no this task type")
-	}
-
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		return err
@@ -117,5 +129,13 @@ func finishTask(ctx *gin.Context) error {
 
 	ctx.Request.Body.Close()
 
-	return cache.Finish(taskId, body)
+	switch before {
+	case "cap":
+		return QQRegisterCaptcha.Finish(taskId, body)
+	case "sms":
+		return QQRegisterSms.Finish(taskId, body)
+	default:
+		return fmt.Errorf("no this task type")
+	}
+
 }

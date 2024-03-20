@@ -21,23 +21,3 @@ func SetupRouter(address string) {
 
 	h.Run(address)
 }
-
-//func resolveCaptcha(ctx *gin.Context) error {
-//
-//	url := ctx.PostForm("url")
-//
-//	ctx.PostForm("cookie")
-//
-//	ctx.PostForm("proxy_address")
-//	ctx.PostForm("proxy_user")
-//	ctx.PostForm("proxy_password")
-//
-//	ctx.PostForm("timeout")
-//
-//	//发放任务
-//	_ = url
-//
-//	//收回任务
-//
-//	return nil
-//}
