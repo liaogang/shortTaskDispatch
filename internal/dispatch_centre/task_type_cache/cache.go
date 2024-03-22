@@ -1,9 +1,10 @@
 package task_type_cache
 
 import (
+	"context"
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"root/model/Task"
+	"root/extend/model/Task"
 	"sync"
 	"time"
 )
@@ -21,6 +22,11 @@ func NewCache() *Cache {
 	return slf
 }
 
+type Wrap struct {
+	err     error
+	payload []byte
+}
+
 func (slf *Cache) DispatchAndWaitFinish(item *Task.Item, timeout time.Duration) ([]byte, error) {
 
 	log.Trace().Interface("dispatch", item).Send()
@@ -29,7 +35,7 @@ func (slf *Cache) DispatchAndWaitFinish(item *Task.Item, timeout time.Duration) 
 	slf.claimBufChannel <- item
 
 	//wait for finish
-	var finishChannel = make(chan []byte)
+	var finishChannel = make(chan Wrap)
 	slf.mFinishChannel.Store(item.Id, finishChannel)
 
 	var t = time.NewTimer(timeout)
@@ -37,31 +43,43 @@ func (slf *Cache) DispatchAndWaitFinish(item *Task.Item, timeout time.Duration) 
 	select {
 	case <-t.C:
 		return nil, fmt.Errorf("timeout")
-	case payload := <-finishChannel:
-		return payload, nil
+	case wrap := <-finishChannel:
+		return wrap.payload, wrap.err
 	}
 
 }
 
-func (slf *Cache) ClaimAndWait() (*Task.Item, error) {
+func (slf *Cache) ClaimAndWait(ctx context.Context) (*Task.Item, error) {
 
 	log.Trace().Msg("ClaimAndWait")
 
-	//wait for a task come
-	var taskItem = <-slf.claimBufChannel
+	select {
+	case taskItem := <-slf.claimBufChannel:
+		//wait for a task come
+		return taskItem, nil
+	case <-ctx.Done():
+		log.Info().Msg("http request cancelled")
+		return nil, fmt.Errorf("http request cancelled")
+	}
 
-	return taskItem, nil
 }
 
-func (slf *Cache) Finish(id string, payload []byte) error {
+func (slf *Cache) Finish(id string, payload []byte, err error) error {
+
+	if payload != nil && err != nil {
+		return fmt.Errorf("logic err, pass payload or err")
+	}
 
 	log.Trace().Str("finish", id).Send()
 
-	if val, ok := slf.mFinishChannel.Load(id); ok {
+	if val, ok := slf.mFinishChannel.LoadAndDelete(id); ok {
 
-		var channel = val.(chan []byte)
+		var channel = val.(chan Wrap)
 
-		channel <- payload
+		channel <- Wrap{
+			err:     err,
+			payload: payload,
+		}
 
 		return nil
 	} else {

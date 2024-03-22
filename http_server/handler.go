@@ -3,11 +3,12 @@ package http_server
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	"io"
-	"root/dispatch_centre/pin_code_task_cache"
-	"root/dispatch_centre/shortid"
-	"root/dispatch_centre/task_type_cache"
-	"root/model/Task"
+	"root/extend/model/Task"
+	"root/internal/dispatch_centre/pin_code_task_cache"
+	"root/internal/dispatch_centre/shortid"
+	"root/internal/dispatch_centre/task_type_cache"
 	"strconv"
 	"strings"
 	"time"
@@ -86,7 +87,7 @@ func claimTask(ctx *gin.Context) error {
 	switch taskType {
 	case TaskTypeQQRegisterCaptcha:
 
-		task, err := QQRegisterCaptcha.ClaimAndWait()
+		task, err := QQRegisterCaptcha.ClaimAndWait(ctx.Request.Context())
 		if err != nil {
 			return err
 		}
@@ -117,6 +118,8 @@ func finishTask(ctx *gin.Context) error {
 
 	taskId := ctx.Query("taskId")
 
+	errParam := ctx.Query("error")
+
 	before, _, found := strings.Cut(taskId, "_")
 	if !found {
 		return fmt.Errorf("invalid task id format")
@@ -131,9 +134,19 @@ func finishTask(ctx *gin.Context) error {
 
 	switch before {
 	case "cap":
-		return QQRegisterCaptcha.Finish(taskId, body)
+
+		if errParam == "1" {
+			return QQRegisterCaptcha.Finish(taskId, nil, errors.New(string(body)))
+		} else {
+			return QQRegisterCaptcha.Finish(taskId, body, nil)
+		}
+
 	case "sms":
-		return QQRegisterSms.Finish(taskId, body)
+		if errParam == "1" {
+			return QQRegisterSms.Finish(taskId, nil, errors.New(string(body)))
+		} else {
+			return QQRegisterSms.Finish(taskId, body, nil)
+		}
 	default:
 		return fmt.Errorf("no this task type")
 	}

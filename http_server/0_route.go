@@ -5,7 +5,7 @@ import (
 	"root/http_server/internal/log_middle"
 )
 
-func SetupRouter(address string) {
+func SetupRouter(address string) error {
 	gin.SetMode(gin.ReleaseMode)
 	h := gin.New()
 	h.Use(log_middle.Logger())
@@ -20,4 +20,6 @@ func SetupRouter(address string) {
 	h.POST("finishTask", genHandler(finishTask))
 
 	h.Run(address)
+
+	return nil
 }

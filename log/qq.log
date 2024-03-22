@@ -1,0 +1,5 @@
+{"level":"info","time":"03-22 09:37:41.860","msg":"----"}
+{"level":"info","http server start at address":":4274","time":"03-22 09:37:41.860"}
+{"level":"info","time":"03-22 09:37:41.860","msg":"----"}
+{"level":"info","time":"03-22 09:37:47.660","msg":"http request cancelled"}
+{"level":"warn","error":"http request cancelled","time":"03-22 09:37:47.660","msg":"POST /claimTask?taskType=qqRegisterCaptcha&wait=1 -> OK 4.986735833s"}
