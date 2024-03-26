@@ -27,7 +27,9 @@ type Wrap struct {
 	payload []byte
 }
 
-func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, timeout time.Duration) ([]byte, error) {
+func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, timeout time.Duration, pinCode string) ([]byte, error) {
+
+	_ = pinCode //no need here
 
 	log.Info().Str("taskId", item.Id).Msg("发布任务并等待认领")
 
@@ -57,7 +59,9 @@ func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, ti
 
 }
 
-func (slf *Cache) ClaimAndWait(ctx context.Context) (*Task.Item, error) {
+func (slf *Cache) ClaimAndWait(ctx context.Context, pinCode string) (*Task.Item, error) {
+
+	_ = pinCode //no need here
 
 	log.Info().Msg("认领任务..")
 

@@ -73,7 +73,7 @@ func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, ti
 
 }
 
-func (slf *Cache) ClaimAndWait(pinCode string) (*Task.Item, error) {
+func (slf *Cache) ClaimAndWait(ctx context.Context, pinCode string) (*Task.Item, error) {
 
 	log.Info().Str("pinCode", pinCode).Msg("认领任务")
 
@@ -83,6 +83,10 @@ func (slf *Cache) ClaimAndWait(pinCode string) (*Task.Item, error) {
 	//wait for a task come
 	var t = time.NewTimer(time.Hour)
 	select {
+	case <-ctx.Done():
+		log.Info().Str("pinCode", pinCode).Msg("用户取消")
+		slf.claimBufChannel.Delete(pinCode)
+		return nil, fmt.Errorf("user cancel")
 	case <-t.C:
 		log.Info().Str("pinCode", pinCode).Msg("认领任务超时")
 		slf.claimBufChannel.Delete(pinCode)

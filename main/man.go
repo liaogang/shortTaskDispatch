@@ -9,8 +9,16 @@ import (
 	"path/filepath"
 	"root/extend/my_env"
 	"root/http_server"
+	"root/internal/dispatch_centre/pin_code_task_cache"
+	"root/internal/dispatch_centre/task_type_cache"
 	"time"
 )
+
+type Config struct {
+	GinHttp       string   `yaml:"http_server_listen"`
+	NoPinCodeImpl []string `yaml:"no_pin_code_impl"`
+	PinCodeImpl   []string `yaml:"pin_code_impl"`
+}
 
 func main() {
 
@@ -26,11 +34,6 @@ func main() {
 		log.Error().AnErr("work", err).Send()
 	}
 }
-
-type Config struct {
-	GinHttp string `yaml:"http_server_listen"`
-}
-
 func work() error {
 
 	dir, err := os.Getwd()
@@ -51,6 +54,14 @@ func work() error {
 	}
 
 	log.Info().Interface("config", config).Send()
+
+	for _, str := range config.NoPinCodeImpl {
+		http_server.NameToImpl[str] = task_type_cache.NewCache()
+	}
+
+	for _, str := range config.PinCodeImpl {
+		http_server.NameToImpl[str] = pin_code_task_cache.NewCache()
+	}
 
 	//启动之后，如果是生产环境，日志输入到lumberjack文件进行分隔
 	if my_env.ReleaseFlag {
