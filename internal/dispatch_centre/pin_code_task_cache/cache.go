@@ -1,6 +1,7 @@
 package pin_code_task_cache
 
 import (
+	"context"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"root/extend/model/Task"
@@ -24,12 +25,18 @@ func NewCache() *Cache {
 	return slf
 }
 
+type Wrap2 struct {
+	id      string
+	err     error
+	payload []byte
+}
+
 type Wrap struct {
 	err     error
 	payload []byte
 }
 
-func (slf *Cache) DispatchAndWaitFinish(pinCode string, item *Task.Item, timeout time.Duration) ([]byte, error) {
+func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, timeout time.Duration, pinCode string) ([]byte, error) {
 
 	log.Info().Str("pinCode", pinCode).Interface("发布任务", item).Send()
 
@@ -51,6 +58,10 @@ func (slf *Cache) DispatchAndWaitFinish(pinCode string, item *Task.Item, timeout
 	var t = time.NewTimer(timeout)
 
 	select {
+	case <-ctx.Done():
+		log.Info().Str("pinCode", pinCode).Msg("用户取消")
+		slf.mFinishChannel.Delete(item.Id)
+		return nil, fmt.Errorf("timeout")
 	case <-t.C:
 		log.Info().Str("pinCode", pinCode).Msg("超时")
 		slf.mFinishChannel.Delete(item.Id)
@@ -86,6 +97,8 @@ func (slf *Cache) ClaimAndWait(pinCode string) (*Task.Item, error) {
 func (slf *Cache) Finish(id string, payload []byte, err error) error {
 
 	log.Info().Str("taskId", id).Msg("完成任务")
+
+	//send taskId and payload ?
 
 	if val, ok := slf.mFinishChannel.LoadAndDelete(id); ok {
 

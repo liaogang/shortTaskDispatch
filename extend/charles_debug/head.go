@@ -2,7 +2,6 @@ package charles_debug
 
 import (
 	"bytes"
-	"google.golang.org/protobuf/proto"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,17 +12,6 @@ import (
 // CharlesDebug 线上需要关闭这个
 
 const CharlesHttpProxyAddr = "http://127.0.0.1:8888"
-
-func SendPbToCharlesIfDefine(pb proto.Message, tag string) {
-
-	if Flag {
-		var data, err = proto.Marshal(pb)
-		if err == nil {
-			SendDataToCharlesIfDefine(data, tag)
-		}
-	}
-
-}
 
 // PbDataSendWithTag send protobuf log to charles
 func SendDataToCharlesIfDefine(data []byte, tag string) {

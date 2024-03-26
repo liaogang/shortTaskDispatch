@@ -27,7 +27,7 @@ type Wrap struct {
 	payload []byte
 }
 
-func (slf *Cache) DispatchAndWaitFinish(item *Task.Item, timeout time.Duration) ([]byte, error) {
+func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, timeout time.Duration) ([]byte, error) {
 
 	log.Info().Str("taskId", item.Id).Msg("发布任务并等待认领")
 
@@ -42,6 +42,10 @@ func (slf *Cache) DispatchAndWaitFinish(item *Task.Item, timeout time.Duration) 
 	var t = time.NewTimer(timeout)
 
 	select {
+	case <-ctx.Done():
+		log.Info().Str("tasId", item.Id).Msg("用户取消")
+		slf.mFinishChannel.Delete(item.Id)
+		return nil, fmt.Errorf("user cancel")
 	case <-t.C:
 		log.Info().Str("tasId", item.Id).Msg("等待超时")
 		slf.mFinishChannel.Delete(item.Id)

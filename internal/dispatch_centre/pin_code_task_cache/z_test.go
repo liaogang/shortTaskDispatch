@@ -1,8 +1,8 @@
 package pin_code_task_cache
 
 import (
+	"errors"
 	"fmt"
-	"github.com/syndtr/goleveldb/leveldb/errors"
 	"sync"
 	"testing"
 )
