@@ -9,6 +9,6 @@ import (
 type DispatchImpl interface {
 	DispatchAndWaitFinish(ctx context.Context, item *Task.Item, timeout time.Duration, pinCode string) ([]byte, error)
 
-	ClaimAndWait(ctx context.Context, pinCode string) (*Task.Item, error)
-	Finish(id string, payload []byte, err error) error
+	ClaimAndWait(workerTag string, ctx context.Context, pinCode string) (*Task.Item, error)
+	Finish(workerTag string, id string, payload []byte, err error) error
 }

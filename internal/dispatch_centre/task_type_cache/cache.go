@@ -31,8 +31,6 @@ func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, ti
 
 	_ = pinCode //no need here
 
-	log.Info().Str("taskId", item.Id).Msg("发布任务并等待认领")
-
 	//send to claim wait
 	slf.claimBufChannel <- item
 
@@ -59,26 +57,26 @@ func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, ti
 
 }
 
-func (slf *Cache) ClaimAndWait(ctx context.Context, pinCode string) (*Task.Item, error) {
+func (slf *Cache) ClaimAndWait(workerTag string, ctx context.Context, pinCode string) (*Task.Item, error) {
 
 	_ = pinCode //no need here
 
-	log.Info().Msg("认领任务..")
+	log.Info().Str("workerTag", workerTag).Msg("认领任务..")
 
 	select {
 	case taskItem := <-slf.claimBufChannel:
-		log.Info().Msg("认领到了一个任务")
+		log.Info().Str("workerTag", workerTag).Str("id", taskItem.Id).Msg("认领到了一个任务")
 		return taskItem, nil
 	case <-ctx.Done():
-		log.Info().Msg("认领任务 http request 已取消")
+		log.Info().Str("workerTag", workerTag).Msg("认领任务 http request 已取消")
 		return nil, fmt.Errorf("http request cancelled")
 	}
 
 }
 
-func (slf *Cache) Finish(id string, payload []byte, err error) error {
+func (slf *Cache) Finish(workerTag string, id string, payload []byte, err error) error {
 
-	log.Info().Str("taskId", id).Msg("提交任务结果")
+	log.Info().Str("workerTag", workerTag).Str("taskId", id).Msg("提交任务结果")
 
 	if payload != nil && err != nil {
 		return fmt.Errorf("logic err, pass payload or err")
@@ -93,11 +91,11 @@ func (slf *Cache) Finish(id string, payload []byte, err error) error {
 			payload: payload,
 		}
 
-		log.Info().Str("taskId", id).Msg("已提交结果给任务发布方")
+		log.Info().Str("workerTag", workerTag).Str("taskId", id).Msg("已提交结果给任务发布方")
 
 		return nil
 	} else {
-		log.Info().Str("taskId", id).Msg("can no find this task id in dispatching, 可能已经超时? 发布都取消了?")
+		log.Info().Str("workerTag", workerTag).Str("taskId", id).Msg("can no find this task id in dispatching, 可能已经超时? 发布都取消了?")
 		return fmt.Errorf("can no find this task id in dispatching")
 	}
 

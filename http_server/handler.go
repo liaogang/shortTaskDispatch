@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"io"
 	"root/extend/model/Task"
 	"root/extend/shortid"
@@ -50,12 +51,17 @@ func publishTask(ctx *gin.Context) error {
 
 	impl, ok := NameToImpl[taskType]
 	if !ok {
-		return fmt.Errorf("no this task type")
+		return fmt.Errorf("no this task type, [%s]", taskType)
 	}
 
 	pinCode := ctx.Query("pinCode")
 
 	var taskId = genUniqueTaskId()
+
+	log.Info().Str("taskId", taskId).
+		Str("type", taskType).
+		Str("pinCode", pinCode).
+		Msg("发布任务并等待认领")
 
 	taskIdToImpl.Store(taskId, impl)
 
@@ -78,13 +84,14 @@ func claimTask(ctx *gin.Context) error {
 
 	taskType := ctx.Query("taskType")
 	pinCode := ctx.Query("pinCode")
+	workerTag := ctx.Query("workerTag")
 
 	impl, ok := NameToImpl[taskType]
 	if !ok {
 		return fmt.Errorf("no this task type")
 	}
 
-	task, err := impl.ClaimAndWait(ctx.Request.Context(), pinCode)
+	task, err := impl.ClaimAndWait(workerTag, ctx.Request.Context(), pinCode)
 	if err != nil {
 		return err
 	}
@@ -99,6 +106,7 @@ func finishTask(ctx *gin.Context) error {
 
 	taskId := ctx.Query("taskId")
 	errParam := ctx.Query("bodyIsError")
+	workerTag := ctx.Query("workerTag")
 
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
@@ -115,9 +123,9 @@ func finishTask(ctx *gin.Context) error {
 	impl := val.(dispatch_centre.DispatchImpl)
 
 	if errParam == "1" {
-		return impl.Finish(taskId, nil, errors.New(string(body)))
+		return impl.Finish(workerTag, taskId, nil, errors.New(string(body)))
 	} else {
-		return impl.Finish(taskId, body, nil)
+		return impl.Finish(workerTag, taskId, body, nil)
 	}
 
 }

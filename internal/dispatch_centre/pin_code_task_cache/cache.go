@@ -38,20 +38,36 @@ type Wrap struct {
 
 func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, timeout time.Duration, pinCode string) ([]byte, error) {
 
-	log.Info().Str("pinCode", pinCode).Interface("发布任务", item).Send()
+	var id = item.Id
+
+	log.Info().
+		Str("pinCode", pinCode).
+		Str("task", id).
+		Interface("a, 发布任务", item).Send()
 
 	val, ok := slf.claimBufChannel.LoadAndDelete(pinCode)
 	if !ok {
-		log.Info().Str("pinCode", pinCode).Msg("no client for this pinCode waiting")
+		log.Info().
+			Str("pinCode", pinCode).
+			Str("task", id).
+			Msg("no client for this pinCode waiting")
 		return nil, fmt.Errorf("no client for this pinCode waiting")
 	}
 
 	var channel = val.(chan *Task.Item)
 
-	log.Info().Str("pinCode", pinCode).Msg("等待任务被认领")
+	log.Info().
+		Str("task", id).
+		Str("pinCode", pinCode).
+		Msg("a, 等待任务被认领")
+
 	channel <- item
 
-	log.Info().Str("pinCode", pinCode).Msg("任务已被认领, 等待任务完成")
+	log.Info().
+		Str("pinCode", pinCode).
+		Str("task", id).
+		Msg("a, 任务已被认领, 等待任务完成")
+
 	var finishChannel = make(chan Wrap)
 	slf.mFinishChannel.Store(item.Id, finishChannel)
 
@@ -59,23 +75,38 @@ func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, ti
 
 	select {
 	case <-ctx.Done():
-		log.Info().Str("pinCode", pinCode).Msg("用户取消")
-		slf.mFinishChannel.Delete(item.Id)
+
+		log.Info().
+			Str("task", id).
+			Str("pinCode", pinCode).
+			Msg("a, 用户取消")
+
+		slf.mFinishChannel.Delete(id)
 		return nil, fmt.Errorf("timeout")
 	case <-t.C:
-		log.Info().Str("pinCode", pinCode).Msg("超时")
-		slf.mFinishChannel.Delete(item.Id)
+
+		log.Info().
+			Str("task", id).
+			Str("pinCode", pinCode).
+			Msg("a, 超时")
+
+		slf.mFinishChannel.Delete(id)
 		return nil, fmt.Errorf("timeout")
 	case wrap := <-finishChannel:
-		log.Info().Str("pinCode", pinCode).Msg("已完成")
+
+		log.Info().
+			Str("task", id).
+			Str("pinCode", pinCode).
+			Msg("a, 已完成")
+
 		return wrap.payload, wrap.err
 	}
 
 }
 
-func (slf *Cache) ClaimAndWait(ctx context.Context, pinCode string) (*Task.Item, error) {
+func (slf *Cache) ClaimAndWait(workerTag string, ctx context.Context, pinCode string) (*Task.Item, error) {
 
-	log.Info().Str("pinCode", pinCode).Msg("认领任务")
+	log.Info().Str("workerTag", workerTag).Str("pinCode", pinCode).Msg("b, 使用对接码来认领任务")
 
 	var channel = make(chan *Task.Item)
 	slf.claimBufChannel.Store(pinCode, channel)
@@ -84,41 +115,54 @@ func (slf *Cache) ClaimAndWait(ctx context.Context, pinCode string) (*Task.Item,
 	var t = time.NewTimer(time.Hour)
 	select {
 	case <-ctx.Done():
-		log.Info().Str("pinCode", pinCode).Msg("用户取消")
+
+		log.Info().Str("workerTag", workerTag).Str("pinCode", pinCode).Msg("b, 用户取消")
+
 		slf.claimBufChannel.Delete(pinCode)
 		return nil, fmt.Errorf("user cancel")
 	case <-t.C:
-		log.Info().Str("pinCode", pinCode).Msg("认领任务超时")
+
+		log.Info().Str("workerTag", workerTag).Str("pinCode", pinCode).Msg("b, 认领任务超时")
+
 		slf.claimBufChannel.Delete(pinCode)
 		return nil, fmt.Errorf("timeout")
 	case taskItem := <-channel:
-		log.Info().Str("pinCode", pinCode).Msg("已认领到一个任务")
+
+		log.Info().
+			Str("task", taskItem.Id).
+			Str("workerTag", workerTag).
+			Str("pinCode", pinCode).
+			Msg("b, 已认领到一个任务")
+
 		return taskItem, nil
 	}
 
 }
 
-func (slf *Cache) Finish(id string, payload []byte, err error) error {
+func (slf *Cache) Finish(workerTag, id string, payload []byte, err error) error {
 
-	log.Info().Str("taskId", id).Msg("完成任务")
-
-	//send taskId and payload ?
+	log.Info().Str("workerTag", workerTag).Str("taskId", id).Msg("b, 完成任务")
 
 	if val, ok := slf.mFinishChannel.LoadAndDelete(id); ok {
 
 		var channel = val.(chan Wrap)
 
-		log.Info().Str("taskId", id).Msg("发送给发布方")
+		log.Info().Str("workerTag", workerTag).Str("taskId", id).Msg("b, 发送给发布方")
 		channel <- Wrap{
 			err:     err,
 			payload: payload,
 		}
 
-		log.Info().Str("taskId", id).Msg("对方已接收")
+		log.Info().Str("workerTag", workerTag).Str("taskId", id).Msg("b, 对方已接收")
 
 		return nil
 	} else {
-		log.Error().Str("taskId", id).Msg("can no find this task id in dispatching")
+
+		log.Error().
+			Str("workerTag", workerTag).
+			Str("taskId", id).
+			Msg("b, can no find this task id in dispatching")
+
 		return fmt.Errorf("can no find this task id in dispatching")
 	}
 
