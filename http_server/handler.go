@@ -37,15 +37,15 @@ func publishTask(ctx *gin.Context) error {
 
 	iTimeout, err := strconv.Atoi(timeout)
 	if err != nil {
-		return err
+		return fmt.Errorf("parse timeout err: %v", err)
 	}
 
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("read request body err: %v", err)
 	}
 
-	ctx.Request.Body.Close()
+	_ = ctx.Request.Body.Close()
 
 	var reqCtx = ctx.Request.Context()
 
@@ -85,6 +85,8 @@ func claimTask(ctx *gin.Context) error {
 	taskType := ctx.Query("taskType")
 	pinCode := ctx.Query("pinCode")
 	workerTag := ctx.Query("workerTag")
+
+	workerTag += "_" + ctx.Request.RemoteAddr
 
 	impl, ok := NameToImpl[taskType]
 	if !ok {

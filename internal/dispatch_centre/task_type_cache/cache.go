@@ -11,13 +11,14 @@ import (
 
 type Cache struct {
 	claimBufChannel chan *Task.Item
-	mFinishChannel  sync.Map //string, channel []byte
+	//claimBufChannel chan *Task.Item&DoneChannel
+	mFinishChannel sync.Map //string, channel []byte
 }
 
 func NewCache() *Cache {
 	var slf = new(Cache)
 
-	slf.claimBufChannel = make(chan *Task.Item, 20)
+	slf.claimBufChannel = make(chan *Task.Item)
 
 	return slf
 }
@@ -51,6 +52,7 @@ func (slf *Cache) DispatchAndWaitFinish(ctx context.Context, item *Task.Item, ti
 		slf.mFinishChannel.Delete(item.Id)
 		return nil, fmt.Errorf("timeout")
 	case wrap := <-finishChannel:
+		slf.mFinishChannel.Delete(item.Id)
 		log.Info().Str("tasId", item.Id).Msg("收到任务结果")
 		return wrap.payload, wrap.err
 	}
