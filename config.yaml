@@ -1,5 +1,5 @@
 
-http_server_listen: ":4274"
+http_listen_address: ":4274"
 
 group_list: [
    'winQQ_554_sign',

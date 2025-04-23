@@ -18,9 +18,9 @@ func publishTask(w http.ResponseWriter, r *http.Request) error {
 	group := query.Get("group")
 	timeout := query.Get("timeout")
 
-	channel, err := manager.GetGroup(group)
-	if err != nil {
-		return fmt.Errorf("get group fail: %w", err)
+	channel, ok := manager.GetGroup(group)
+	if !ok {
+		return fmt.Errorf("manger get group fail, %s", group)
 	}
 
 	iTimeout, err := strconv.Atoi(timeout)

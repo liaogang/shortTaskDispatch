@@ -14,12 +14,12 @@ func finishTaskWithSuccess(w http.ResponseWriter, r *http.Request) error {
 
 	group := query.Get("group")
 
-	channel, err := manager.GetGroup(group)
-	if err != nil {
-		return fmt.Errorf("no this task of group: %s", group)
+	channel, ok := manager.GetGroup(group)
+	if !ok {
+		return fmt.Errorf("manger get group fail, %s", group)
 	}
 
-	taskId := query.Get("taskId")
+	taskId := query.Get("task_id")
 	clientName := query.Get("client_name")
 
 	body, err := io.ReadAll(r.Body)
@@ -38,12 +38,12 @@ func finishTaskWithError(w http.ResponseWriter, r *http.Request) error {
 
 	group := query.Get("group")
 
-	channel, err := manager.GetGroup(group)
-	if err != nil {
-		return fmt.Errorf("no this task of group: %s", group)
+	channel, ok := manager.GetGroup(group)
+	if !ok {
+		return fmt.Errorf("manger get group fail, %s", group)
 	}
 
-	taskId := query.Get("taskId")
+	taskId := query.Get("task_id")
 	clientName := query.Get("client_name")
 
 	body, err := io.ReadAll(r.Body)

@@ -2,7 +2,9 @@ package cmd_server
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"os"
+	"root/http_server"
 	"root/manager"
 )
 
@@ -22,5 +24,7 @@ func Work() error {
 
 	useJsonLogIfRelease(dir)
 
-	return nil
+	log.Info().Msgf("http server start at [%s]", config.HttpListenAddress)
+
+	return http_server.StartRouter(config.HttpListenAddress)
 }

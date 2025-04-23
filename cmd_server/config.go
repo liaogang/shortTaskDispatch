@@ -8,8 +8,8 @@ import (
 )
 
 type Config struct {
-	GinHttp   string   `yaml:"http_server_listen"`
-	GroupList []string `yaml:"group_list"`
+	HttpListenAddress string   `yaml:"http_listen_address"`
+	GroupList         []string `yaml:"group_list"`
 }
 
 func loadConfig(dir string) (*Config, error) {

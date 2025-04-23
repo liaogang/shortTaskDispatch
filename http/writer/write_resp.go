@@ -1,8 +1,6 @@
 package writer
 
 import (
-	"fmt"
-	"github.com/goccy/go-json"
 	"net/http"
 )
 
@@ -18,29 +16,6 @@ func Err0(w http.ResponseWriter, err error) {
 
 func Err1(w http.ResponseWriter, err error) error {
 	Err0(w, err)
-	return nil
-}
-
-func JsonData0(w http.ResponseWriter, data []byte) {
-	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(data)
-}
-
-func JsonData1(w http.ResponseWriter, data []byte) error {
-	JsonData0(w, data)
-	return nil
-}
-
-func JsonDataOrErr0(w http.ResponseWriter, data []byte, err error) {
-	if err != nil {
-		Err0(w, err)
-	} else {
-		JsonData0(w, data)
-	}
-}
-
-func JsonDataOrErr1(w http.ResponseWriter, data []byte, err error) error {
-	JsonDataOrErr0(w, data, err)
 	return nil
 }
 
@@ -79,42 +54,3 @@ func HtmlDataOrErr0(w http.ResponseWriter, text []byte, err error) {
 func Html1(w http.ResponseWriter, text string) error {
 	return HtmlData1(w, []byte(text))
 }
-
-func Json0(w http.ResponseWriter, msg interface{}) {
-	data, err := json.Marshal(msg)
-
-	if err != nil {
-		Err0(w, fmt.Errorf("json marshal error: %v", err))
-	} else {
-		JsonData0(w, data)
-	}
-
-}
-
-func Json1(w http.ResponseWriter, msg interface{}) error {
-	Json0(w, msg)
-	return nil
-}
-
-func JsonOrErr1(w http.ResponseWriter, msg interface{}, err error) error {
-	if err != nil {
-		return Err1(w, err)
-	} else {
-		return Json1(w, msg)
-	}
-}
-
-//func WriteProtoData0(w http.ResponseWriter, data []byte) {
-//	w.Header().Set("Content-Type", "application/x-google-protobuf")
-//	_, _ = w.Write(data)
-//}
-//
-//func WriteProtoMsg0(w http.ResponseWriter, msg proto.Message) {
-//	data, err := proto.Marshal(msg)
-//	if err != nil {
-//		_ = Err1(w, fmt.Errorf("proto marshal error: %v", err))
-//		return
-//	}
-//
-//	WriteProtoData0(w, data)
-//}

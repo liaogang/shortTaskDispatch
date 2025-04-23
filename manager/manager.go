@@ -1,14 +1,11 @@
 package manager
 
 import (
-	"errors"
 	"root/group"
 	"sync"
 )
 
 var cache sync.Map // groupName -> *Channel
-
-//var allTaskId sync.Map// taskId -> struct{}
 
 func SetupGroupChannels(items []string) {
 
@@ -20,12 +17,12 @@ func SetupGroupChannels(items []string) {
 
 }
 
-func GetGroup(groupName string) (*group.Channel, error) {
+func GetGroup(groupName string) (*group.Channel, bool) {
 
 	val, ok := cache.Load(groupName)
 	if !ok {
-		return nil, errors.New("group not exist")
+		return nil, false
 	}
 
-	return val.(*group.Channel), nil
+	return val.(*group.Channel), true
 }

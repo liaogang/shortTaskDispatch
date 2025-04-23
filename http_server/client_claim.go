@@ -11,14 +11,14 @@ func claimTask(w http.ResponseWriter, r *http.Request) error {
 	query := r.URL.Query()
 
 	group := query.Get("group")
-	pinCode := query.Get("pinCode")
+	pinCode := query.Get("pin_code")
 	clientName := query.Get("client_name")
 
 	clientName = clientName + "_" + r.RemoteAddr
 
-	channel, err := manager.GetGroup(group)
-	if err != nil {
-		return fmt.Errorf("no this task type, %s", group)
+	channel, ok := manager.GetGroup(group)
+	if !ok {
+		return fmt.Errorf("manger get group fail, %s", group)
 	}
 
 	task, err := channel.ClaimAndWait(clientName, r.Context(), pinCode)
