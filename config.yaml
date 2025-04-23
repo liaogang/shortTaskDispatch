@@ -1,12 +1,7 @@
 
 http_server_listen: ":4274"
 
-no_pin_code_impl: ['qqRegisterCaptcha',
-                   'qqPwdLoginCaptcha',
-                   'winQQ_551_sign',
-                   'winQQ_554_sign',
-                   'qq9065RpcGroup',
-                   'qq9120RpcGroup',
+group_list: [
+   'winQQ_554_sign',
 ]
 
-pin_code_impl: ['qqRegisterCheckOrSendSms']
